@@ -10,7 +10,7 @@ runs:
     id: cache
     with:
       path: env
-      key: env-${{ hashFiles('requirements.txt') }}
+      key: env-${{ hashFiles('requirements.txt', 'requirements.dev.txt') }}
   - name: Install dependencies
     if: steps.cache.outputs.cache-hit != 'true'
     shell: bash
