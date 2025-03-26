@@ -3,7 +3,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main, refacto ]
+    branches: [ main ]
 
 jobs:
   run_precommit:
