@@ -168,7 +168,6 @@ def _train(args: TrainArgs, exit_stack: ExitStack):  # noqa: C901
     lm_config["lora"] = args.lora.enable
     lm_config["lora_rank"] = args.lora.rank
     lm_config["lora_scaling"] = args.lora.scaling
-    lm_config["gradient_checkpointing"] = args.gradient_checkpointing
 
     mimi = loaders.get_mimi(mimi_weight, device="cuda")
     mimi = mimi.to("cuda")
