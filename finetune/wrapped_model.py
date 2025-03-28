@@ -11,7 +11,6 @@ from huggingface_hub import hf_hub_download
 from moshi.models import loaders
 from moshi.models.lm import LMModel
 from moshi.models.loaders import _is_safetensors
-from moshi.modules.lora import replace_all_linear_with_lora
 from moshi.modules.transformer import StreamingTransformerLayer
 from torch.distributed.fsdp import BackwardPrefetch
 from torch.distributed.fsdp.api import ShardingStrategy
@@ -132,8 +131,6 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
                 "lora_scaling": args.lora.scaling,
             },
         )
-        if args.lora.enable:
-            replace_all_linear_with_lora(model, args.lora.rank, args.lora.scaling)
 
     if get_rank() == 0:
         if args.moshi_paths.hf_repo_id is not None:

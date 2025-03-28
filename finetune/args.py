@@ -3,10 +3,21 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from moshi.modules.lora import LoraArgs
 from simple_parsing.helpers import Serializable
 
 from .data.args import DataArgs
+
+
+@dataclass
+class LoraArgs(Serializable):
+    enable: bool = False
+    rank: int = 64
+    scaling: float = 2.0
+
+    def __post_init__(self) -> None:
+        if self.enable:
+            assert self.rank > 0
+            assert self.scaling > 0.0
 
 
 @dataclass
