@@ -10,7 +10,7 @@ runs:
     id: cache
     with:
       path: env
-      key: env-${{ hashFiles('requirements.txt', 'requirements.dev.txt') }}
+      key: env-${{ hashFiles('uv.lock') }}
   - name: Install dependencies
     if: steps.cache.outputs.cache-hit != 'true'
     shell: bash
@@ -23,6 +23,5 @@ runs:
     shell: bash
     run: |
       source  env/bin/activate
-      pip install -r requirements.txt
-      pip install -r requirements.dev.txt
+      pip install -e .[dev]
       pre-commit install
