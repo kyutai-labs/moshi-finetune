@@ -229,7 +229,7 @@ customize these settings for your use case.
 
 Once your model is trained, you can use it in interactive mode using [moshi](https://github.com/kyutai-labs/moshi).
 The package should already be in your environment if you used the
-`requirements.txt` file. If not, you can install it using `pip install moshi`.
+`requirements.txt` file. If not, you can install it using `pip install git+https://git@github.com/kyutai-labs/moshi.git#egg=moshi&subdirectory=moshi`.
 
 #### 2️⃣ Run inference using the fine-tuned model
 
