@@ -27,14 +27,24 @@ git clone git@github.com:kyutai-labs/moshi-finetune.git
 ```
 
 ### 2️⃣ Install all required dependencies:
-You will need at least Python 3.10. We recommend using a virtual environment,
-e.g. using [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions)
-or good old [virtualenv](https://virtualenv.pypa.io/en/latest/).
+
+We recommend using [`uv`](https://docs.astral.sh/uv/) to manage the environment.
+It's about 10x faster than `pip` and has a bunch of other benefits too.
+Once you've installed `uv`, no explicit package installation is required:
+just prefix every command with `uv run` (e.g. train using `uv run torchrun ...`).
+This will automatically install the necessary dependencies based on `pyproject.toml`.
+
+#### Installing without `uv`
+
+If you prefer working with `pip`, and handling the install manually, you will need at least Python 3.10. 
+We still advise using a virtual environment,
+which can be created using [Conda](https://www.anaconda.com/docs/getting-started/miniconda/install#quickstart-install-instructions)
+[virtualenv](https://virtualenv.pypa.io/en/latest/).
 Then, run:
 
 ```sh
 cd moshi-finetune
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## 📥 Model configuration
