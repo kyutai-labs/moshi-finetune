@@ -95,7 +95,9 @@ def initialize_lora_parameters(model: torch.nn.Module, param_dtype: torch.dtype)
                     raise ValueError("Only Lora layers should be randomly initialized.")
 
 
-def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyShardedDataParallel | LMModel:
+def get_fsdp_model(
+    args: TrainArgs, checkpointer_info: CheckpointInfo
+) -> FullyShardedDataParallel | LMModel:
     """
     Initializes and returns a FullyShardedDataParallel (FSDP) LMModel or a non sharded LMModel if one GPU available.
     Args:

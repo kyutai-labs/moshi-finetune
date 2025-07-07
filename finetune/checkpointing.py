@@ -111,8 +111,13 @@ class Checkpointer:
         if save_only_lora:
 
             def is_trainable_fsdp(module: torch.nn.Module | FullyShardedDataParallel):
-                is_fsdp = (isinstance(module, FullyShardedDataParallel) or get_world_size() == 1)
-                all_params_have_grads = is_fsdp and all(p.requires_grad for p in module.parameters())
+                is_fsdp = (
+                    isinstance(module, FullyShardedDataParallel)
+                    or get_world_size() == 1
+                )
+                all_params_have_grads = is_fsdp and all(
+                    p.requires_grad for p in module.parameters()
+                )
 
                 # need to make sure only lowest fsdp wrap is used
                 is_leaf_node = is_fsdp and (
@@ -128,7 +133,10 @@ class Checkpointer:
 
             states = {}
             for key, module in modules.items():
-                assert isinstance(module, FullyShardedDataParallel) or get_world_size() == 1, (
+                assert (
+                    isinstance(module, FullyShardedDataParallel)
+                    or get_world_size() == 1
+                ), (
                     "`module` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
                 )
                 parent_prefix = key.replace("_fsdp_wrapped_module.", "").replace(
@@ -169,7 +177,10 @@ class Checkpointer:
                     )
 
             # make sure you have enough CPU RAM available to save the full model
-            assert isinstance(self.model, FullyShardedDataParallel) or get_world_size() == 1, (
+            assert (
+                isinstance(self.model, FullyShardedDataParallel)
+                or get_world_size() == 1
+            ), (
                 "`self.model` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
             )
             if get_world_size() > 1:

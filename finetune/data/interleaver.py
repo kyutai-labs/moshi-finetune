@@ -184,7 +184,8 @@ class Interleaver:
             last_word_end = -1
             for t in range(T):
                 while (
-                    i < len(alignments) and alignments[i][1][0] * self.audio_frame_rate < t + 1
+                    i < len(alignments)
+                    and alignments[i][1][0] * self.audio_frame_rate < t + 1
                 ):
                     tokenized = alignments[i][0]
                     last_word_end = int(alignments[i][1][1] * self.audio_frame_rate)
