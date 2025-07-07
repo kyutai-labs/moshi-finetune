@@ -4,7 +4,7 @@ import os
 import pprint
 from contextlib import ExitStack
 from pathlib import Path
-
+import shutil
 import fire
 import torch.cuda
 import torch.distributed as dist
@@ -80,10 +80,13 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
     run_dir = Path(args.run_dir)
 
     if is_torchrun():
-        if run_dir.exists():
+        if run_dir.exists() and not args.overwrite_run_dir:
             raise RuntimeError(
                 f"Run dir {run_dir} already exists. Make sure to either rename `run_dir` or remove {run_dir}."
             )
+        elif run_dir.exists():
+            main_logger_info(f"Removing run dir {run_dir}...")
+            shutil.rmtree(run_dir)
 
     if args.full_finetuning:
         assert not args.lora.enable, "LoRA should not be enabled for full finetuning."
