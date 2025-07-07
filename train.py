@@ -2,16 +2,17 @@ import dataclasses
 import logging
 import os
 import pprint
+import shutil
 from contextlib import ExitStack
 from pathlib import Path
-import shutil
+
 import fire
 import torch.cuda
 import torch.distributed as dist
-from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
+
 from finetune.args import TrainArgs
 from finetune.checkpointing import Checkpointer
 from finetune.data.data_loader import build_data_loader
@@ -41,6 +42,7 @@ from finetune.monitoring.metrics_logger import (
 from finetune.monitoring.utils import set_logger
 from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
+from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
