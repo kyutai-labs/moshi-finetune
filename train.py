@@ -185,6 +185,15 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
             world_size=get_world_size(),  # DDP world_size
             is_eval=True,
         )
+        eval_batches = []
+        while len(eval_batches) < 40:
+            try:
+                batch = next(eval_data_loader)
+            except StopIteration:
+                main_logger_info("No more batches in eval data loader")
+                break
+            else:
+                eval_batches.append(batch)
 
     # 6. Load model
     # Define mixed precision
@@ -316,7 +325,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
             (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
         ):
             # write perplexity to state
-            evaluate(model, eval_data_loader, state, args)
+            evaluate(model, eval_batches, state, args)
 
             eval_logs = get_eval_logs(
                 state.step,

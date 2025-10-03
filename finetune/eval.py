@@ -1,5 +1,4 @@
 import logging
-from typing import Iterator
 
 import torch
 import torch.cuda
@@ -23,7 +22,7 @@ def main_logger_info(message: str) -> None:
 
 def evaluate(
     model: FullyShardedDataParallel,
-    eval_data_loader: Iterator[Batch],
+    eval_batches: list[Batch],
     state: TrainState,
     args: TrainArgs,
 ):
@@ -32,10 +31,8 @@ def evaluate(
     text_loss = torch.tensor(0.0).cuda()
     audio_loss = torch.tensor(0.0).cuda()
     model.eval()
-    for batch in eval_data_loader:
+    for batch in eval_batches:
         num_samples += 1
-        if num_samples > 40 // get_world_size():
-            break
         with torch.no_grad():
             codes = batch.codes
             condition_tensors = None
