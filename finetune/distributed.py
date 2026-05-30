@@ -25,7 +25,7 @@ def visible_devices() -> List[int]:
     cvd = os.environ.get("CUDA_VISIBLE_DEVICES")
     if cvd is not None:
         return [int(d) for d in cvd.split(",")]
-    # CUDA_VISIBLE_DEVICES not set (e.g. Modal containers) — enumerate all devices.
+    # CUDA_VISIBLE_DEVICES not set — enumerate all available devices.
     return list(range(torch.cuda.device_count()))
 
 
