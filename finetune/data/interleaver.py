@@ -18,19 +18,43 @@ TokenizedAlignment = tuple[list[int], tuple[float, float], str]
 class Sample:
     codes: torch.Tensor
     condition_attributes: ConditionAttributes | None = None
+    text_frame_weights: torch.Tensor | None = None
+    audio_frame_weights: torch.Tensor | None = None
+    first_codebook_frame_weights: torch.Tensor | None = None
 
 
 @dataclass
 class Batch:
     codes: torch.Tensor
     condition_attributes: list[ConditionAttributes] | None = None
+    text_frame_weights: torch.Tensor | None = None
+    audio_frame_weights: torch.Tensor | None = None
+    first_codebook_frame_weights: torch.Tensor | None = None
 
     @classmethod
     def collate(cls, batch: list[Sample]) -> "Batch":
         codes = torch.cat([b.codes for b in batch])
-        if batch[0].condition_attributes is None:
-            return Batch(codes)
-        return Batch(codes, [b.condition_attributes for b in batch])
+        conditions = (
+            None
+            if batch[0].condition_attributes is None
+            else [b.condition_attributes for b in batch]
+        )
+
+        def collate_weights(name: str) -> torch.Tensor | None:
+            values = [getattr(item, name) for item in batch]
+            if all(value is None for value in values):
+                return None
+            if any(value is None for value in values):
+                raise ValueError(f"mixed presence of {name} in one batch")
+            return torch.cat(values)  # type: ignore[arg-type]
+
+        return Batch(
+            codes,
+            conditions,
+            collate_weights("text_frame_weights"),
+            collate_weights("audio_frame_weights"),
+            collate_weights("first_codebook_frame_weights"),
+        )
 
 
 def tokenize(
@@ -286,4 +310,56 @@ class InterleavedTokenizer:
             )
 
             codes = torch.cat([text_tokens, audio_tokens], dim=1)
-            return Sample(codes, data.get("text_conditions", None))
+            weights = self._frame_weights(
+                data.get("loss_regions", []),
+                start_sec=start_sec,
+                path=path,
+                device=audio_tokens.device,
+            )
+            return Sample(
+                codes,
+                data.get("text_conditions", None),
+                weights["text"],
+                weights["audio"],
+                weights["first_codebook"],
+            )
+
+    def _frame_weights(
+        self,
+        regions: list[dict],
+        *,
+        start_sec: float,
+        path: str,
+        device: torch.device,
+    ) -> dict[str, torch.Tensor]:
+        """Rasterize optional event-centred loss regions for the current training chunk."""
+        outputs = {
+            name: torch.ones(
+                (1, self.num_audio_frames),
+                device=device,
+                dtype=torch.float32,
+            )
+            for name in ("text", "audio", "first_codebook")
+        }
+        chunk_end = start_sec + self.duration_sec
+        for region in regions:
+            region_start = max(start_sec, float(region["start_s"]))
+            region_end = min(chunk_end, float(region["end_s"]))
+            if region_end <= region_start:
+                continue
+            first_frame = max(
+                0,
+                math.floor((region_start - start_sec) * self.mimi.frame_rate),
+            )
+            end_frame = min(
+                self.num_audio_frames,
+                math.ceil((region_end - start_sec) * self.mimi.frame_rate),
+            )
+            for name in outputs:
+                field = f"{name}_weight"
+                if field in region:
+                    value = float(region[field])
+                    if not math.isfinite(value) or value < 0:
+                        raise ValueError(f"invalid {field}={value!r} in {path}")
+                    outputs[name][:, first_frame:end_frame] = value
+        return outputs

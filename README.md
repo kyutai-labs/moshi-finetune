@@ -75,6 +75,35 @@ where each line has the form
 Each audio file should have an associated `.json` file that contains
 the transcript with timestamps. These JSONs can be generated automatically, see below.
 
+### Optional event-weighted loss
+
+Set `event_weighted_loss: true` in the training configuration to emphasize selected time regions
+without duplicating or slicing audio. Add a `loss_regions` array to an audio sidecar:
+
+```json
+{
+  "alignments": [],
+  "loss_regions": [
+    {
+      "start_s": 2.4,
+      "end_s": 3.1,
+      "text_weight": 2.0,
+      "audio_weight": 1.25,
+      "first_codebook_weight": 1.5
+    }
+  ]
+}
+```
+
+The three optional weights affect the text loss, all audio codebooks, and the first audio codebook
+respectively. Frames outside all regions keep weight `1.0`. Regions use absolute timestamps in the
+audio file; they are clipped to the randomly selected training chunk. When regions overlap, the
+later region in the sidecar takes precedence for fields it defines. Weights must be finite and
+non-negative, and each effective batch loss must retain at least one positive-weight target.
+
+The option defaults to `false`, preserving the existing loss exactly. With the option enabled,
+sidecars without `loss_regions` also retain unit weights.
+
 For example, the following would be a valid directory structure for a dataset:
 
 ```

@@ -72,6 +72,7 @@ class TrainArgs(Serializable):
     moshi_paths: ModelPaths = field(default_factory=ModelPaths)
     first_codebook_weight_multiplier: float = 1.0
     text_padding_weight: float = 0.5
+    event_weighted_loss: bool = False
 
     optim: OptimArgs = field(default_factory=OptimArgs)
     seed: int = 0

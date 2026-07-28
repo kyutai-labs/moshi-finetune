@@ -55,6 +55,9 @@ def evaluate(
                     model.text_padding_token_id,
                     model.end_of_text_padding_id,
                 },
+                frame_weights=(
+                    batch.text_frame_weights if args.event_weighted_loss else None
+                ),
             )
             audio_loss += compute_loss_with_mask(
                 output.logits,
@@ -62,6 +65,14 @@ def evaluate(
                 output.mask,
                 mode="audio",
                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+                frame_weights=(
+                    batch.audio_frame_weights if args.event_weighted_loss else None
+                ),
+                first_codebook_frame_weights=(
+                    batch.first_codebook_frame_weights
+                    if args.event_weighted_loss
+                    else None
+                ),
             )
     eval_loss = text_loss + audio_loss
     all_num_samples = [torch.zeros_like(num_samples) for _ in range(get_world_size())]

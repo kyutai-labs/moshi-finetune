@@ -9,10 +9,10 @@ from pathlib import Path
 import fire
 import torch.cuda
 import torch.distributed as dist
+from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
-
 from finetune.args import TrainArgs
 from finetune.checkpointing import Checkpointer
 from finetune.data.data_loader import build_data_loader
@@ -42,7 +42,6 @@ from finetune.monitoring.metrics_logger import (
 from finetune.monitoring.utils import set_logger
 from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
-from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
@@ -263,6 +262,9 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
                     model.text_padding_token_id,
                     model.end_of_text_padding_id,
                 },
+                frame_weights=(
+                    batch.text_frame_weights if args.event_weighted_loss else None
+                ),
             )
             audio_loss = compute_loss_with_mask(
                 output.logits,
@@ -270,6 +272,14 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
                 output.mask,
                 mode="audio",
                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
+                frame_weights=(
+                    batch.audio_frame_weights if args.event_weighted_loss else None
+                ),
+                first_codebook_frame_weights=(
+                    batch.first_codebook_frame_weights
+                    if args.event_weighted_loss
+                    else None
+                ),
             )
 
             mb_loss = text_loss + audio_loss
