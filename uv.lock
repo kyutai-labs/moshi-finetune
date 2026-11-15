@@ -465,7 +465,7 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "huggingface-hub" },
     { name = "llvmlite", specifier = ">=0.44" },
-    { name = "moshi", git = "https://github.com/kyutai-labs/moshi.git?subdirectory=moshi" },
+    { name = "moshi", git = "https://github.com/kyutai-labs/moshi.git?subdirectory=moshi&rev=061cc4c630d9e11722e08b7d02b1836ba58f30e8" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==1.4.0" },
     { name = "mypy-extensions", marker = "extra == 'dev'", specifier = "==1.0.0" },
     { name = "numba", specifier = ">=0.61" },
@@ -809,7 +809,7 @@ wheels = [
 [[package]]
 name = "moshi"
 version = "0.2.4a1"
-source = { git = "https://github.com/kyutai-labs/moshi.git?subdirectory=moshi#061cc4c630d9e11722e08b7d02b1836ba58f30e8" }
+source = { git = "https://github.com/kyutai-labs/moshi.git?subdirectory=moshi&rev=061cc4c630d9e11722e08b7d02b1836ba58f30e8#061cc4c630d9e11722e08b7d02b1836ba58f30e8" }
 dependencies = [
     { name = "aiohttp" },
     { name = "bitsandbytes", marker = "sys_platform == 'linux'" },
