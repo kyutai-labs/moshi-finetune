@@ -79,10 +79,17 @@ class Checkpointer:
 
         return ckpts_to_delete
 
-    def write_params_info(self, tmp_dst: Path):
+    def write_params_info(self, tmp_dst: Path, save_only_lora: bool = False):
+        export_config = dict(self.config)
+        if not save_only_lora:
+            # Full checkpoints contain the merged weights. Re-enabling LoRA on
+            # load would add fresh random adapters to those weights.
+            export_config["lora"] = False
+            for key in ("lora_rank", "lora_scaling", "lora_name"):
+                export_config.pop(key, None)
         params_path = tmp_dst / "config.json"
         with open(params_path, "w") as f:
-            f.write(json.dumps(self.config, indent=4))
+            f.write(json.dumps(export_config, indent=4))
 
     @staticmethod
     def get_non_lora_states(
@@ -228,7 +235,7 @@ class Checkpointer:
                     tmp_dst, save_only_lora=save_only_lora
                 ),  # always use safetensors for checkpointing
             )
-            self.write_params_info(tmp_dst)
+            self.write_params_info(tmp_dst, save_only_lora=save_only_lora)
             assert not self.dst_dir.exists(), f"should not happen! {self.dst_dir}"
             tmp_dst.rename(self.dst_dir)
 
