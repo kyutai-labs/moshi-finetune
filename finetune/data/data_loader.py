@@ -37,3 +37,6 @@ def build_data_loader(
         if len(sample_list) == batch_size:
             yield Batch.collate(sample_list)
             sample_list = []
+
+    if is_eval and sample_list:
+        yield Batch.collate(sample_list)

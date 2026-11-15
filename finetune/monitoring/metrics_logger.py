@@ -47,6 +47,10 @@ def get_eval_logs(
     eval_loss: float | None = None,
     text_eval_loss: float | None = None,
     audio_eval_loss: float | None = None,
+    text_perplexity: float | None = None,
+    audio_perplexity: float | None = None,
+    eval_examples: int | None = None,
+    eval_batches: int | None = None,
 ) -> dict[str, float | int]:
     eval_dict = {"step": step, "train_loss": train_loss}
 
@@ -62,6 +66,14 @@ def get_eval_logs(
     if audio_eval_loss is not None:
         eval_dict["audio_eval_loss"] = audio_eval_loss
 
+    for key, value in (
+        ("text_perplexity", text_perplexity),
+        ("audio_perplexity", audio_perplexity),
+        ("eval_examples", eval_examples),
+        ("eval_batches", eval_batches),
+    ):
+        if value is not None:
+            eval_dict[key] = value
     return eval_dict
 
 
@@ -104,6 +116,10 @@ def eval_log_msg(logs: dict[str, float | int]) -> str:
         ("train_loss", ".3f", None),
         ("text_eval_loss", ".3f", None),
         ("audio_eval_loss", ".3f", None),
+        ("text_perplexity", ".3f", None),
+        ("audio_perplexity", ".3f", None),
+        ("eval_examples", "d", None),
+        ("eval_batches", "d", None),
     ]:
         name = key if new_name is None else new_name
         if key in logs:

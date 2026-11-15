@@ -4,15 +4,16 @@ import os
 import pprint
 import shutil
 from contextlib import ExitStack
+from functools import partial
 from pathlib import Path
 
 import fire
 import torch.cuda
 import torch.distributed as dist
+from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
-
 from finetune.args import TrainArgs
 from finetune.checkpointing import Checkpointer
 from finetune.data.data_loader import build_data_loader
@@ -42,7 +43,6 @@ from finetune.monitoring.metrics_logger import (
 from finetune.monitoring.utils import set_logger
 from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
-from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
@@ -176,13 +176,14 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
     )
 
     if args.do_eval:
-        eval_data_loader = build_data_loader(
+        eval_data_loader = partial(
+            build_data_loader,
             instruct_tokenizer=interleaved_tokenizer,
             args=args.data,
             batch_size=args.batch_size,
             seed=None,
-            rank=get_rank(),  # DDP rank
-            world_size=get_world_size(),  # DDP world_size
+            rank=get_rank(),
+            world_size=get_world_size(),
             is_eval=True,
         )
 
@@ -316,13 +317,19 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
             (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
         ):
             # write perplexity to state
-            evaluate(model, eval_data_loader, state, args)
+            evaluate(model, eval_data_loader(), state, args)
 
             eval_logs = get_eval_logs(
                 state.step,
                 avg_loss,
                 state.this_eval_perplexity,
                 state.this_eval_loss,
+                text_eval_loss=state.this_text_loss,
+                audio_eval_loss=state.this_audio_loss,
+                text_perplexity=state.this_text_perplexity,
+                audio_perplexity=state.this_audio_perplexity,
+                eval_examples=state.this_eval_examples,
+                eval_batches=state.this_eval_batches,
             )
 
             main_logger_info(eval_log_msg(eval_logs))

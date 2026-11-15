@@ -182,6 +182,21 @@ Using the above hyperparameters:
 
 If you encounter **out-of-memory errors**, try reducing the `batch_size`. If the issue persists, you can lower the `duration_sec` parameter, but be aware that this may negatively impact the user experience during inference, potentially causing the model to become silent more quickly.
 
+## Evaluation
+
+Each evaluation starts a fresh finite validation iterator and includes partial
+final batches. NLL is aggregated by the effective token weights, including text
+padding and first-codebook weights. `eval_loss` remains the sum of the text and
+audio mean NLLs. `text_perplexity` and `audio_perplexity` use `exp` of each mean;
+`perplexity` uses `exp` of the pooled weighted-token mean NLL. Existing perplexity
+values from older versions are not comparable with this corrected definition.
+
+Distributed evaluation runs the same number of forward passes on every rank,
+stopping at the shortest rank-local iterator, up to `max(1, 40 // world_size)`
+steps. A rank with no batches, or no positively weighted targets globally, causes
+a clear error. `eval_examples` and `eval_batches` report the actual global
+coverage, which may be a common prefix of an unevenly sharded validation set.
+
 ## ⚙️ Customizing training configuration
 
 The example `moshi-finetune/example/moshi_7B.yaml` defines reasonable parameters for learning rate, weight decay, etc... but you are advised to
