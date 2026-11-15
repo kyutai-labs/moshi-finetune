@@ -250,10 +250,12 @@ Otherwise (if your ran full fine-tuning, or didn't checkpoint LORA only), you ca
 ```sh
 python -m moshi.server \
 --moshi-weight=$CHECKPOINT_DIR/consolidated/consolidated.safetensors \
---config-path=$CHECKPOINT_DIR/consolidated/consolidated/config.json 
+--config-path=$CHECKPOINT_DIR/consolidated/config.json
 ```
 
 Here, `consolidated.safetensors` contains all of the new Moshi weights and doesn't reference any base model.
+Its exported config disables LoRA because the adapter update is already merged
+into those weights. Adapter-only checkpoints retain their LoRA configuration.
 
 ## 📊 Monitoring with Weights & Biases (W&B)
 
