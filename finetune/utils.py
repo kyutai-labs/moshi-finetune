@@ -21,6 +21,10 @@ class TrainState:
     this_eval_loss: float | None = None
     this_audio_loss: float | None = None
     this_text_loss: float | None = None
+    this_text_perplexity: float | None = None
+    this_audio_perplexity: float | None = None
+    this_eval_examples: int | None = None
+    this_eval_batches: int | None = None
 
     def start_step(self):
         self.step += 1
