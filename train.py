@@ -2,17 +2,16 @@ import dataclasses
 import logging
 import os
 import pprint
-import shutil
 from contextlib import ExitStack
 from pathlib import Path
 
 import fire
 import torch.cuda
 import torch.distributed as dist
+from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
-
 from finetune.args import TrainArgs
 from finetune.checkpointing import Checkpointer
 from finetune.data.data_loader import build_data_loader
@@ -23,6 +22,7 @@ from finetune.distributed import (
     get_rank,
     get_world_size,
     is_torchrun,
+    prepare_run_dir,
     set_device,
 )
 from finetune.eval import evaluate
@@ -40,9 +40,9 @@ from finetune.monitoring.metrics_logger import (
     train_log_msg,
 )
 from finetune.monitoring.utils import set_logger
+from finetune.training import clip_grad_norm_
 from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
-from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
@@ -81,26 +81,17 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
     main_logger_info(f"Run dir: {args.run_dir}")
     run_dir = Path(args.run_dir)
 
-    if is_torchrun():
-        if run_dir.exists() and not args.overwrite_run_dir:
-            raise RuntimeError(
-                f"Run dir {run_dir} already exists. Make sure to either rename `run_dir` or remove {run_dir}."
-            )
-        elif run_dir.exists():
-            main_logger_info(f"Removing run dir {run_dir}...")
-            shutil.rmtree(run_dir)
-
     if args.full_finetuning:
         assert not args.lora.enable, "LoRA should not be enabled for full finetuning."
     else:
         assert args.lora.enable, "LoRA should be enabled for partial finetuning"
 
-    dist.barrier()
-    run_dir.mkdir(exist_ok=True, parents=True)
-
-    args_path = run_dir / "args.yaml"
-    if not args_path.exists():
-        args.save(args_path)
+    prepare_run_dir(
+        run_dir,
+        overwrite=args.overwrite_run_dir,
+        check_existing=is_torchrun(),
+        save_args=args.save,
+    )
 
     main_logger_info(f"TrainArgs: {pprint.pformat(dataclasses.asdict(args))}")
 
@@ -272,7 +263,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
                 first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
             )
 
-            mb_loss = text_loss + audio_loss
+            mb_loss = (text_loss + audio_loss) / args.num_microbatches
             mb_loss.backward()
 
             loss += mb_loss.detach()
@@ -286,18 +277,11 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
                 assert args.num_microbatches > 1  # should not happen
                 torch.cuda.synchronize()
 
-        if args.num_microbatches > 1:
-            loss /= args.num_microbatches
-            for p in model.parameters():
-                if p.requires_grad:
-                    assert p.grad is not None
-                    p.grad.div_(args.num_microbatches)
-
         # upcast params for optimizer update
         upcast_mixed_precision(model.parameters(), optim_dtype=optim_dtype)
 
         # clip grad norm
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_norm)
+        clip_grad_norm_(model, args.max_norm)
 
         # optimizer step
         optimizer.step()
