@@ -133,11 +133,17 @@ If you want to annotate your own dataset and generate the `.json` transcripts fo
 audio file, you can use the `annotate.py` script:
 
 ```sh
-python annotate.py {your jsonl file}
+python annotate.py {your jsonl file} --local
 ```
 
 This script can also be run in a distributed manner with SLURM using e.g.
 `--shards 64 --partition 'your-partition'`.
+
+Relative audio paths are resolved against the JSONL file's directory, matching
+the training data reader. `--keep_silence_in_segments` is a duration in seconds
+(default `1.0`); use `0` to disable silence retention or e.g. `0.25` for 250 ms.
+The current training pipeline supports unconditional sidecars containing
+`alignments`; sidecars with non-null `text_conditions` are rejected explicitly.
 
 ## 🏋️ Start training
 
