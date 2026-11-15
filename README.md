@@ -228,8 +228,13 @@ customize these settings for your use case.
 #### 1️⃣ Install Moshi for inference
 
 Once your model is trained, you can use it in interactive mode using [moshi](https://github.com/kyutai-labs/moshi).
-The package should already be in your environment if you used the
-`requirements.txt` file. If not, you can install it using `pip install git+https://git@github.com/kyutai-labs/moshi.git#egg=moshi&subdirectory=moshi`.
+The package is installed with this project. `pyproject.toml` and `uv.lock` pin
+the same tested Moshi commit so that pip and uv use compatible APIs and `sphn`
+requirements. For a separate inference environment, use the same revision:
+
+```sh
+pip install 'moshi @ git+https://github.com/kyutai-labs/moshi.git@061cc4c630d9e11722e08b7d02b1836ba58f30e8#subdirectory=moshi'
+```
 
 #### 2️⃣ Run inference using the fine-tuned model
 

@@ -16,7 +16,7 @@ dependencies = [
   # "git+https://git@github.com/kyutai-labs/moshi.git#egg=moshi&subdirectory=moshi",
   # We could also use [tool.uv.sources] to point to the git repo, but this maintains
   # compatibility with `pip install -e .`
-  "moshi @ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi",
+  "moshi @ git+https://github.com/kyutai-labs/moshi.git@061cc4c630d9e11722e08b7d02b1836ba58f30e8#subdirectory=moshi",
   "sphn==0.1.12",
   "auditok==0.2",
   "whisper_timestamped",
