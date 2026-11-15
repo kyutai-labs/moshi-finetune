@@ -172,9 +172,17 @@ class Interleaver:
         self,
         alignments: list[TokenizedAlignment] | None,
         segment_duration: float,
+        *,
+        num_audio_frames: int | None = None,
     ) -> torch.Tensor:
         """Builds the token stream from the tokenized alignments."""
-        T = math.ceil(segment_duration * self.audio_frame_rate)
+        # Encoded audio already has an exact frame count. Avoid a seconds/frames
+        # round trip, which can add one frame due to floating-point ceil.
+        T = (
+            math.ceil(segment_duration * self.audio_frame_rate)
+            if num_audio_frames is None
+            else num_audio_frames
+        )
         if alignments is None:
             text_tokens = [self.zero_padding] * T
         else:
@@ -205,7 +213,7 @@ class Interleaver:
                 elif t <= last_word_end:
                     text_tokens[t] = self.in_word_padding
         if self.audio_delay < 0:
-            prefix_length = int(self.audio_frame_rate * -self.audio_delay)
+            prefix_length = min(T, int(self.audio_frame_rate * -self.audio_delay))
             text_tokens[:prefix_length] = [self.zero_padding] * prefix_length
         return torch.tensor(text_tokens, device=self.device).view(1, 1, -1)
 
@@ -214,6 +222,8 @@ class Interleaver:
         alignments: list[Alignment] | None,
         segment_duration: float,
         main_speaker: str | None = None,
+        *,
+        num_audio_frames: int | None = None,
     ) -> torch.Tensor:
         """Responsible with processing the alignments and calling `build_token_stream`."""
         if alignments is None:
@@ -229,7 +239,9 @@ class Interleaver:
             tokenized = self._keep_those_with_duration(tokenized)
             if self.audio_delay != 0:
                 tokenized = self._add_delay(tokenized)
-        return self.build_token_stream(tokenized, segment_duration)
+        return self.build_token_stream(
+            tokenized, segment_duration, num_audio_frames=num_audio_frames
+        )
 
 
 def dicho(alignment, val, i=0, j=None):
@@ -252,6 +264,15 @@ class InterleavedTokenizer:
         self.num_audio_frames = math.ceil(duration_sec * mimi.frame_rate)
 
     def __call__(self, wav: np.ndarray, start_sec: float, path: str) -> Sample:
+        info_file = os.path.splitext(path)[0] + ".json"
+        with open(info_file) as f:
+            data = json.load(f)
+        if data.get("text_conditions") is not None:
+            raise ValueError(
+                f"{info_file}: text_conditions is not supported by this training "
+                "pipeline. Remove this field for unconditional fine-tuning."
+            )
+
         with torch.no_grad():
             audio_tensor = torch.Tensor(wav).cuda()
             audio_tokens = self.mimi.encode(audio_tensor[:, None])
@@ -264,10 +285,7 @@ class InterleavedTokenizer:
             )
             audio_tokens = audio_tokens.view(1, -1, self.num_audio_frames)
 
-            info_file = os.path.splitext(path)[0] + ".json"
-            with open(info_file) as f:
-                data = json.load(f)
-                alignments = data["alignments"]
+            alignments = data["alignments"]
 
             start_alignment = dicho(alignments, start_sec)
             end_alignment = dicho(alignments, start_sec + self.duration_sec)
@@ -277,7 +295,9 @@ class InterleavedTokenizer:
             ]
 
             text_tokens = self.interleaver.prepare_item(
-                alignments, this_num_audio_frames
+                alignments,
+                this_num_audio_frames / self.mimi.frame_rate,
+                num_audio_frames=this_num_audio_frames,
             )
             text_tokens = torch.nn.functional.pad(
                 text_tokens,
@@ -286,4 +306,4 @@ class InterleavedTokenizer:
             )
 
             codes = torch.cat([text_tokens, audio_tokens], dim=1)
-            return Sample(codes, data.get("text_conditions", None))
+            return Sample(codes)

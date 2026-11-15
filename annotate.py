@@ -4,6 +4,7 @@ import gzip
 import importlib
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -56,7 +57,10 @@ def load_audio_paths(egs_path: Path) -> list[Path]:
     paths: list[Path] = []
     for line in lines:
         d = json.loads(line)
-        paths.append(Path(d["path"]))
+        audio_path = Path(d["path"])
+        if not audio_path.is_absolute():
+            audio_path = egs_path.resolve().parent / audio_path
+        paths.append(audio_path)
     return paths
 
 
@@ -210,6 +214,13 @@ class Params:
     shard: int = 0
 
 
+def parse_silence_seconds(value: str) -> float:
+    seconds = float(value)
+    if not math.isfinite(seconds) or seconds < 0:
+        raise argparse.ArgumentTypeError("Silence duration must be finite and non-negative.")
+    return seconds
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Annotate with transcripts and diarization."
@@ -235,10 +246,10 @@ def main():
     )
     parser.add_argument(
         "--keep_silence_in_segments",
-        type=bool,
-        default=True,
-        help="Keep some of the silence at the beginnning / end of segments"
-        " in whisper timestamped. This can mitigate words being misplaced.",
+        type=parse_silence_seconds,
+        default=1.0,
+        help="Seconds of silence to retain at segment boundaries (default: 1; "
+        "0 disables retention). This can mitigate words being misplaced.",
     )
     parser.add_argument(
         "-l", "--local", action="store_true", help="Run locally to debug."
